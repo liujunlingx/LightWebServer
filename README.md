@@ -56,7 +56,7 @@ import java.util.Map;
 @Controller
 public class HelloWorldController {
 
-    // get
+    // GET
     @WebPath("/testGet")
     public Response testGet(@QueryParam(value = "name",required = true)String name,Request request){
         Map<String,String> map = new HashMap<>();
@@ -64,7 +64,7 @@ public class HelloWorldController {
         return new JsonResponse(HttpStatus.OK_200,map);
     }
 
-    // multipart/form-data post
+    // POST 请求的Content-Type为multipart/form-data
     @WebPath(value = "/testPost1",method = HttpMethod.POST)
     public Response testPost1(@MultiPartData("photo")MimeData photo,
                               @MultiPartData("name")MimeData name,
@@ -83,19 +83,11 @@ public class HelloWorldController {
         return new Response(HttpStatus.OK_200);
     }
 
-    // application/x-www-form-urlencoded post
+    // POST 请求的Content-Type为application/x-www-form-urlencoded
     @WebPath(value = "/testPost2", method = HttpMethod.POST)
     public Response testPost2(@FormParam("name")String name, @QueryParam("age")Integer age){
         System.out.println("hello " + name + ", your age is " + age);
         return new Response(HttpStatus.OK_200);
-    }
-
-    //TODO name传不了中文
-    @WebPath("/testJson")
-    public Response testJson(@QueryParam(value = "name",required = true)String name){
-        Map<String,String> map = new HashMap<>();
-        map.put("hello", name);
-        return new JsonResponse(HttpStatus.OK_200,map);
     }
 
 }
@@ -106,13 +98,8 @@ public class HelloWorldController {
 ```java
 import com.light.io.Server;
 
-then start
-
 import java.io.IOException;
 
-/**
- * Created on 2018/4/27.
- */
 public class Application {
 
     public static void main(String[] args) throws IOException {
