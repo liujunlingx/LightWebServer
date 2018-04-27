@@ -8,7 +8,7 @@ LightWebServer是一个轻量级的嵌入式web服务器，同时提供了简单
 # Install
 1. -Dmaven.test.skip=true clean install
 2. include maven dependency
-```java
+```
 <dependencies>
     <dependency>
         <groupId>com.lightwebserver</groupId>
@@ -96,6 +96,8 @@ public class HelloWorldController {
 2. Start Server
 
 ```java
+package com.cqu;
+
 import com.light.io.Server;
 
 import java.io.IOException;
@@ -103,6 +105,7 @@ import java.io.IOException;
 public class Application {
 
     public static void main(String[] args) throws IOException {
+        //第二个参数是要扫描@Controller的包名，可以是多个
         Server.run(new String[]{"start"}, new String[]{"com.cqu"});
     }
 }
