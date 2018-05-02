@@ -1,6 +1,5 @@
 package com.light.http.requests;
 
-import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import com.light.http.HttpMethod;
 import com.light.http.HttpVersion;
 import com.light.http.exceptions.IllegalRequestException;
@@ -15,6 +14,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.*;
@@ -65,7 +65,7 @@ public class RequestParser {
         return new Request(requestLine,requestHeader,requestBody);
     }
 
-    public static RequestLine parseRequestLine(byte[] src){
+    private static RequestLine parseRequestLine(byte[] src){
         RequestLine requestLine = new RequestLine();
         try {
             BufferedReader reader = new BufferedReader(new StringReader(new String(src, Static.DEFAULT_CHARSET)));
@@ -77,7 +77,7 @@ public class RequestParser {
             HttpVersion httpVersion = HttpVersion.parseHttpVersion(line[2]);
             int index = requestURI.indexOf("?");
             if(index != -1){
-                queryString = requestURI.substring(index + 1);
+                queryString = URLDecoder.decode(requestURI.substring(index + 1),Static.DEFAULT_CHARSET);
                 parseQueryParameters(queryString, queryMap);
                 requestURI = requestURI.substring(0,index);
             }
@@ -92,7 +92,7 @@ public class RequestParser {
         return requestLine;
     }
 
-    public static void parseQueryParameters(String queryString, MultiValuedMap<String,String> queryMap){
+    private static void parseQueryParameters(String queryString, MultiValuedMap<String,String> queryMap){
         String[] keyValuePairs = queryString.split("&");
         for(String keyValuePair : keyValuePairs){
             String[] split =  keyValuePair.split("=");
@@ -103,7 +103,7 @@ public class RequestParser {
         }
     }
 
-    public static RequestHeader parseRequestHeader(byte[] src){
+    private static RequestHeader parseRequestHeader(byte[] src){
         RequestHeader requestHeader = new RequestHeader();
         Map<String,String> headers = new HashMap<>();
         try {
@@ -122,7 +122,7 @@ public class RequestParser {
         return requestHeader;
     }
 
-    public static RequestBody parseRequestBody(byte[] src,RequestHeader header){
+    private static RequestBody parseRequestBody(byte[] src,RequestHeader header){
         if(src.length == 0){
             return new RequestBody();
         }
@@ -145,7 +145,7 @@ public class RequestParser {
         return new RequestBody(formMap,mimeMap);
     }
 
-    public static Map<String,MimeData> parseMimeMap(byte[] src,String boundary){
+    private static Map<String,MimeData> parseMimeMap(byte[] src,String boundary){
         boundary = "--" + boundary;
 
         Map<String,MimeData> map = new HashMap<>();
@@ -164,12 +164,12 @@ public class RequestParser {
             int lineEndIndex = BytesUtil.indexOf(segment, "\r\n");
             byte[] firstLine = Arrays.copyOfRange(segment, 0, lineEndIndex);
 
-            String control = null;
+            String control;
             String contentType = null;
             String filename = null;
             byte[] data = null;
 
-            int dataStartIndex = 0;
+            int dataStartIndex;
             List<Integer> allQuotationIndexes = BytesUtil.findAll(firstLine, "\"");
             control = new String(Arrays.copyOfRange(firstLine,allQuotationIndexes.get(0) + 1,allQuotationIndexes.get(1)));
             if(allQuotationIndexes.size() == 2){

@@ -10,6 +10,7 @@ import java.io.IOException;
 public class LightWebServer {
 
     public static void main(String[] args) throws IOException {
-        Server.run(args,LightWebServer.class.getPackage().getName());
+        //run方法第二个参数是要扫描@Controller的包名，可以是多个
+        Server.run(args);
     }
 }
