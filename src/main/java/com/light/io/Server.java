@@ -26,6 +26,13 @@ public class Server {
     private ServerContext serverContext;
     private Selector selector;
 
+<<<<<<< HEAD
+=======
+    public Server(ServerContext serverContext){
+        this.serverContext = serverContext;
+    }
+
+>>>>>>> e4d7215dd27435af4e5bda7159c7db11ae54544c
     /**
      * 启动服务器
      * @param args 格式:start [address:port]
