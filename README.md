@@ -103,7 +103,8 @@ public class Application {
 
     public static void main(String[] args) throws IOException {
         //第二个参数指定扫描@Controller的包名，可以是多个 
-        Server.run(new String[]{"start","localhost:8080"},new String[]{"your_controller_pkg_path1","your_controller_pkg_path2"});
+        Server.run(new String[]{"start","localhost:8080"},
+                new String[]{"your_controller_pkg_path1","your_controller_pkg_path2"});
     }
 }
 ```
