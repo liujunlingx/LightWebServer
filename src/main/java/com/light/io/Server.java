@@ -26,7 +26,7 @@ public class Server {
     private ServerContext serverContext;
     private Selector selector;
 
-    public Server(ServerContext serverContext,String... controllerPackageNames){
+    public Server(ServerContext serverContext){
         this.serverContext = serverContext;
     }
 
