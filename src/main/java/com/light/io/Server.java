@@ -26,25 +26,35 @@ public class Server {
     private ServerContext serverContext;
     private Selector selector;
 
-    public Server(ServerContext serverContext,String... controllerPackageNames){
-        this.serverContext = serverContext;
-    }
-
     /**
-     *
-     * @param args  格式:start [address:port]
+     * 启动服务器
+     * @param args 格式:start [address:port]
+     * @param controllerPacakgePaths 扫描包下的controller
      * @throws IOException
      */
-    public static void run(String[] args,String... controllerPacakgePaths) throws IOException {
-        ServerContext context = buildServerContext(args);
-        Server server = new Server(context);
-        server.init(controllerPacakgePaths);
-        server.start();
+    public void run(String[] args,String... controllerPacakgePaths) throws IOException {
+        //初始化
+        init(args,controllerPacakgePaths);
+        //启动
+        start();
     }
 
-    private static ServerContext buildServerContext(String[] args) throws UnknownHostException {
-        ServerContext context = new ServerContext();
+    private void init(String[] args,String... controllerPacakgePaths) throws UnknownHostException {
+        long start = System.currentTimeMillis();
 
+        //初始化server context，包括ip、port等信息
+        initContext(args);
+        //扫描controller
+        initController(controllerPacakgePaths);
+        //初始化serversocket，开始接受socket连接
+        initServer();
+
+        long end = System.currentTimeMillis();
+        log.info("服务器启动 http:/{}:{}/ 耗时:{}ms", serverContext.getIp().getHostAddress(),
+                serverContext.getPort(), end - start);
+    }
+
+    private void initContext(String[] args) throws UnknownHostException {
         //parse command line arguments
         if(args.length < 1 || !args[0].equals("start")){
             log.info("Usage: start [address:port]");
@@ -63,17 +73,10 @@ public class Server {
             port = 8080;
         }
 
+        ServerContext context = new ServerContext();
         context.setIp(ip);
         context.setPort(port);
-        return context;
-    }
-
-    private void init(String... controllerPacakgePaths){
-        long start = System.currentTimeMillis();
-        initController(controllerPacakgePaths);
-        initServer();
-        long end = System.currentTimeMillis();
-        log.info("服务器启动 http:/{}:{}/ 耗时:{}ms", serverContext.getIp().getHostAddress(), serverContext.getPort(), end - start);
+        this.serverContext = context;
     }
 
     /**
@@ -104,8 +107,8 @@ public class Server {
             serverSocketChannel = ServerSocketChannel.open();
             serverSocketChannel.bind(new InetSocketAddress(serverContext.getIp(), serverContext.getPort()));
             serverSocketChannel.configureBlocking(false);
-            selector = Selector.open();
-            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+            this.selector = Selector.open();
+            serverSocketChannel.register(this.selector, SelectionKey.OP_ACCEPT);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -114,13 +117,13 @@ public class Server {
     private void start() throws IOException {
         while(true){
             try{
-                if(selector.select(500) == 0)
+                if(this.selector.select(500) == 0)
                     continue;
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-            Set<SelectionKey> readyKeys = selector.selectedKeys();
+            Set<SelectionKey> readyKeys = this.selector.selectedKeys();
             Iterator<SelectionKey> iterator = readyKeys.iterator();
             while (iterator.hasNext()){
                 SelectionKey key = iterator.next();
