@@ -235,7 +235,6 @@ public class Request implements HttpServletRequest{
         return null;
     }
 
-    //TODO request.getParameter
     @Override
     public String getParameter(String s) {
         String method = requestLine.getMethod().getName();

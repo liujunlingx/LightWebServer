@@ -58,6 +58,8 @@ public class RequestHandler implements Runnable{
             log.error("parseRequest failed", e);
         } catch (IllegalAccessException | InvocationTargetException e) { //controllerMethod.handle出错
             e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
         }
 
         attachResponse(response);
