@@ -59,12 +59,10 @@ public class Response implements HttpServletResponse{
                 e.printStackTrace();
             }
 
-            responseBuffer = ByteBuffer.allocate(statusLineAndHeaders.length + body.length + 2);
+            responseBuffer = ByteBuffer.allocate(statusLineAndHeaders.length + body.length);
             responseBuffer.put(statusLineAndHeaders);
 
             responseBuffer.put(body);
-            responseBuffer.put((byte)'\r');
-            responseBuffer.put((byte)'\n');
             responseBuffer.flip();
         }
         return responseBuffer;

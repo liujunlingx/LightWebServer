@@ -24,9 +24,9 @@ LightWebServer is similar to Spring MVC.
 
 #### 请求映射
 
-@Controller --> Spring MVC @Controller
+@Controller --> 类似Spring MVC中的@Controller
 
-@WebPath --> Spring MVC @RequestMapping
+@WebPath    --> 类似Spring MVC中的@RequestMapping
 
 #### 参数注入
 - @QueryParam 得到GET参数
@@ -96,17 +96,16 @@ public class HelloWorldController {
 2. Start Server
 
 ```java
-package com.cqu;
-
 import com.light.io.Server;
-
 import java.io.IOException;
 
 public class Application {
 
     public static void main(String[] args) throws IOException {
-        //第二个参数是要扫描@Controller的包名，可以是多个
-        Server.run(new String[]{"start"}, new String[]{"com.cqu"});
+        Server server = new Server(); 
+        //第二个参数指定扫描@Controller的包名，可以是多个
+        server.run(new String[]{"start","localhost:8080"},
+                new String[]{"your_controller_pkg_path1","your_controller_pkg_path2"});
     }
 }
 ```

@@ -23,24 +23,39 @@ import java.util.Set;
 @Slf4j
 public class Server {
 
-    //for ServerSocket to bind
-    private InetAddress ip;
-    private int port;
-
+    private ServerContext serverContext;
     private Selector selector;
 
-    public Server(InetAddress ip,int port){
-        this.ip = ip;
-        this.port = port;
-    }
-
     /**
-     *
-     * @param args
-     * @param pkgNames 包名，可多个，扫描每个包下所有的@Controller类
+     * 启动服务器
+     * @param args 格式:start [address:port]
+     * @param controllerPacakgePaths 扫描包下的controller
      * @throws IOException
      */
-    public static void run(String[] args,String... pkgNames) throws IOException {
+    public void run(String[] args,String... controllerPacakgePaths) throws IOException {
+        //初始化
+        init(args,controllerPacakgePaths);
+        //启动
+        start();
+    }
+
+    private void init(String[] args,String... controllerPacakgePaths) throws UnknownHostException {
+        long start = System.currentTimeMillis();
+
+        //初始化server context，包括ip、port等信息
+        initContext(args);
+        //扫描controller
+        initController(controllerPacakgePaths);
+        //初始化serversocket，开始接受socket连接
+        initServer();
+
+        long end = System.currentTimeMillis();
+        log.info("服务器启动 http:/{}:{}/ 耗时:{}ms", serverContext.getIp().getHostAddress(),
+                serverContext.getPort(), end - start);
+    }
+
+    private void initContext(String[] args) throws UnknownHostException {
+        //parse command line arguments
         if(args.length < 1 || !args[0].equals("start")){
             log.info("Usage: start [address:port]");
             System.exit(1);
@@ -49,34 +64,66 @@ public class Server {
         InetAddress ip = null;
         int port = 0;
 
-        try{
-            if(args.length == 2 && args[1].matches(".+:\\d+")){
-                String[] addressAndPort = args[1].split(":");
-                ip = InetAddress.getByName(addressAndPort[0]);
-                port = Integer.valueOf(addressAndPort[1]);
-            }else{
-                ip = InetAddress.getLocalHost();
-                port = 8080;
-            }
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
+        if(args.length == 2 && args[1].matches(".+:\\d+")){
+            String[] addressAndPort = args[1].split(":");
+            ip = InetAddress.getByName(addressAndPort[0]);
+            port = Integer.valueOf(addressAndPort[1]);
+        }else{
+            ip = InetAddress.getLocalHost();
+            port = 8080;
         }
 
-        Server server = new Server(ip,port);
-        server.start(pkgNames);
+        ServerContext context = new ServerContext();
+        context.setIp(ip);
+        context.setPort(port);
+        this.serverContext = context;
     }
 
-    public void start(String... pkgNames) throws IOException {
-        init(pkgNames);
+    /**
+     * 扫描所有@Controller
+     */
+    private void initController(String... controllerPacakgePaths){
+        ControllerScan.scanPackage("com.light");
+
+        for(String packageName : controllerPacakgePaths){
+            log.info("包名：{}，开始扫描包中的@Controller", packageName);
+            ControllerScan.scanPackage(packageName);
+        }
+
+        //因为这个项目是让别人添加maven依赖就能用的，所以读配置文件的方式不好
+//        //从配置文件settings.properties读取需要扫描的controller包名
+//        if(PropertiesUtil.getProperty("controller_package") != null){
+//            String[] pkgNames = PropertiesUtil.getProperty("controller_package").split(";");
+//            for(String pkgName : pkgNames){
+//                log.info("包名：{}，开始在包下扫描@Controller注解",pkgName);
+//                ControllerScan.scanPackage(pkgName);
+//            }
+//        }
+    }
+
+    private void initServer(){
+        ServerSocketChannel serverSocketChannel;
+        try {
+            serverSocketChannel = ServerSocketChannel.open();
+            serverSocketChannel.bind(new InetSocketAddress(serverContext.getIp(), serverContext.getPort()));
+            serverSocketChannel.configureBlocking(false);
+            this.selector = Selector.open();
+            serverSocketChannel.register(this.selector, SelectionKey.OP_ACCEPT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void start() throws IOException {
         while(true){
             try{
-                if(selector.select(500) == 0)
+                if(this.selector.select(500) == 0)
                     continue;
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-            Set<SelectionKey> readyKeys = selector.selectedKeys();
+            Set<SelectionKey> readyKeys = this.selector.selectedKeys();
             Iterator<SelectionKey> iterator = readyKeys.iterator();
             while (iterator.hasNext()){
                 SelectionKey key = iterator.next();
@@ -92,34 +139,14 @@ public class Server {
         }
     }
 
-    public void init(String... pkgNames){
-        long start = System.currentTimeMillis();
-        ServerSocketChannel serverSocketChannel;
-        try {
-            serverSocketChannel = ServerSocketChannel.open();
-            serverSocketChannel.bind(new InetSocketAddress(ip, port));
-            serverSocketChannel.configureBlocking(false);
-            selector = Selector.open();
-            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        log.info("服务器启动 http:/{}:{}/ 耗时:{}ms", ip.getHostAddress(), port, System.currentTimeMillis() - start);
-        //扫描所有RequestMapping
-        ControllerScan.scanPackage("com.light");
-        for(String pkgName : pkgNames){
-            ControllerScan.scanPackage(pkgName);
-        }
-    }
-
-    public void accept(SelectionKey key) throws IOException {
+    private void accept(SelectionKey key) throws IOException {
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
         SocketChannel client = serverSocketChannel.accept();
         client.configureBlocking(false);
         client.register(selector, SelectionKey.OP_READ);
     }
 
-    public void read(SelectionKey key) throws IOException {
+    private void read(SelectionKey key) throws IOException {
         //System.out.println("Start read method");
         SocketChannel client = (SocketChannel) key.channel();
         ThreadPool.execute(new RequestHandler(client, selector));
@@ -128,7 +155,7 @@ public class Server {
         //System.out.println("End read method");
     }
 
-    public void write(SelectionKey key) throws IOException {
+    private void write(SelectionKey key) throws IOException {
         //System.out.println("Start write method");
         SocketChannel client = (SocketChannel) key.channel();
         Response response = (Response) key.attachment();
