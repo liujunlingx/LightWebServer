@@ -112,6 +112,7 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     private void start() throws IOException {
@@ -140,34 +141,39 @@ public class Server {
     }
 
     private void accept(SelectionKey key) throws IOException {
+        System.out.println("accept");
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
         SocketChannel client = serverSocketChannel.accept();
         client.configureBlocking(false);
         client.register(selector, SelectionKey.OP_READ);
     }
 
-    private void read(SelectionKey key) throws IOException {
-        //System.out.println("Start read method");
+    private void read(SelectionKey key) {
+        System.out.println("read");
         SocketChannel client = (SocketChannel) key.channel();
         ThreadPool.execute(new RequestHandler(client, selector));
-        //TODO keep-alive
-        key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);//目前一个请求对应一个socket连接，没有实现keep-alive
-        //System.out.println("End read method");
+        key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
     }
 
-    private void write(SelectionKey key) throws IOException {
-        //System.out.println("Start write method");
-        SocketChannel client = (SocketChannel) key.channel();
-        Response response = (Response) key.attachment();
-        ByteBuffer byteBuffer = response.getResponseBuffer();
-        if(byteBuffer.hasRemaining()){
-            client.write(byteBuffer);
-        }
-        if(!byteBuffer.hasRemaining()){
-            key.cancel();
-            client.close();
-        }
-        //System.out.println("End write method");
+    private void write(SelectionKey key) {
+        System.out.println("write");
+        ThreadPool.execute(() -> {
+            SocketChannel client = (SocketChannel) key.channel();
+            Response response = (Response) key.attachment();
+            ByteBuffer byteBuffer = response.getResponseBuffer();
+            try {
+                if(byteBuffer.hasRemaining()){
+                    client.write(byteBuffer);
+                }
+                if(!byteBuffer.hasRemaining()){
+                    key.cancel();
+                    client.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
     }
 
 }
