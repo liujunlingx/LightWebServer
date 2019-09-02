@@ -6,7 +6,7 @@ LightWebServer是一个轻量级的嵌入式web服务器，同时提供了简单
 - Java version >= 1.8
 
 # Install
-1. -Dmaven.test.skip=true clean install
+1. mvn -Dmaven.test.skip=true clean install
 2. include maven dependency
 ```
 <dependencies>
